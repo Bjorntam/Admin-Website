@@ -1,5 +1,5 @@
 import PageBreadcrumb from "../components/common/PageBreadCrumb";
-import UserMetaCard from "../components/UserProfile/UserMetaCard";
+// import UserMetaCard from "../components/UserProfile/UserMetaCard";
 import UserInfoCard from "../components/UserProfile/UserInfoCard";
 import PageMeta from "../components/common/PageMeta";
 
@@ -15,8 +15,8 @@ export default function UserProfiles() {
         <h3 className="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
           Profile
         </h3>
-        <div className="space-y-6">
-          <UserMetaCard />
+        <div className="space-y-4">
+          {/* <UserMetaCard /> */}
           <UserInfoCard />
         </div>
       </div>

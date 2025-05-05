@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { Link } from "react-router";
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { db,auth } from '../../firebase';
+import { doc, getDoc} from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -26,6 +29,56 @@ export default function UserDropdown() {
   }
 };
 
+const [userData, setUserData] = useState({
+  firstName: "",
+  lastName: "",
+  email: "",
+  role: "",
+  teacherUID: ""
+});
+
+  useEffect(() => {
+    // Listen for authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Get user data from Firestore
+          const userEmail = user.email;
+          console.log("Current user email:", userEmail);
+          
+          if (!userEmail) {
+            throw new Error("User email not found");
+          }
+          
+          const userDocRef = doc(db, "teachers", userEmail);
+          console.log("Fetching document from path:", `teachers/${userEmail}`);
+          
+          const userDocSnap = await getDoc(userDocRef);
+          
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
+            console.log("Document data:", data);
+            
+            setUserData({
+              firstName: data.FirstName || "",
+              lastName: data.LastName || "",
+              email: data.Email || userEmail,
+              role: data.Role || "",
+              teacherUID: data.TeacherUID || ""
+            });
+          } else {
+            console.log("No such document exists!");
+          }
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+        }
+      }
+    });
+
+    // Clean up the subscription
+    return () => unsubscribe();
+  }, []);
+
   return (
     <div className="relative">
       <button
@@ -33,7 +86,7 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
 
-        <span className="block mr-1 font-medium text-theme-sm">Ingemar</span>
+        <span className="block mr-1 font-medium text-theme-sm">{userData.firstName}</span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
@@ -61,10 +114,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            Ingemar Bjorn
+            {userData.firstName} {userData.lastName}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            Levifuukerman@gmail.com
+            {userData.email}
           </span>
         </div>
 

@@ -35,7 +35,11 @@ export default function UserInfoCard() {
           const userEmail = user.email;
           console.log("Current user email:", userEmail);
           
-          const userDocRef = doc(db, "teachers", userEmail!);
+          if (!userEmail) {
+            throw new Error("User email not found");
+          }
+          
+          const userDocRef = doc(db, "teachers", userEmail);
           console.log("Fetching document from path:", `teachers/${userEmail}`);
           
           const userDocSnap = await getDoc(userDocRef);
@@ -44,27 +48,23 @@ export default function UserInfoCard() {
             const data = userDocSnap.data();
             console.log("Document data:", data);
             
-            // Split the name into first and last name (assuming the name is stored as "FirstName LastName")
-            const firstName = data.FirstName || "";
-            const lastName = data.LastName || "";
-            
-            // Update state with user data
             setUserData({
-              firstName,
-              lastName,
-              email: data.Email || userEmail || "",
+              firstName: data.FirstName || "",
+              lastName: data.LastName || "",
+              email: data.Email || userEmail,
               role: data.Role || "",
               teacherUID: data.TeacherUID || ""
             });
 
             // Also update form data for editing
             setFormData({
-              firstName,
-              lastName,
-              email: data.Email || userEmail || ""
+              firstName: data.FirstName || "",
+              lastName: data.LastName || "",
+              email: data.Email || userEmail
             });
           } else {
             console.log("No such document exists!");
+            setError("User document not found");
           }
         } catch (err) {
           console.error("Error fetching user data:", err);
@@ -101,16 +101,16 @@ export default function UserInfoCard() {
       const userEmail = auth.currentUser.email;
       const userDocRef = doc(db, "teachers", userEmail);
       
-      console.log("Updating document with data:", {
+      // Prepare update data - matching the structure in the database
+      const updateData = {
         FirstName: formData.firstName,
         LastName: formData.lastName
-      });
+      };
+      
+      console.log("Updating document with data:", updateData);
       
       // Update the document with new values
-      await updateDoc(userDocRef, {
-        FirstName: formData.firstName,
-        LastName: formData.lastName
-      });
+      await updateDoc(userDocRef, updateData);
 
       console.log("Document successfully updated");
 
@@ -187,6 +187,8 @@ export default function UserInfoCard() {
               </p>
             </div>
 
+
+
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
                 Role
@@ -195,8 +197,6 @@ export default function UserInfoCard() {
                 {userData.role}
               </p>
             </div>
-
-
           </div>
         </div>
 
@@ -239,7 +239,7 @@ export default function UserInfoCard() {
               Update your details to keep your profile up-to-date.
             </p>
           </div>
-          <form className="flex flex-col">
+          <form className="flex flex-col" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
             <div className="custom-scrollbar h-[270px] overflow-y-auto px-2 pb-3">
               <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
@@ -267,7 +267,7 @@ export default function UserInfoCard() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-2 lg:col-span-1">
                     <Label>Email Address</Label>
                     <Input 
                       type="text" 
@@ -277,8 +277,6 @@ export default function UserInfoCard() {
                       hint="Email cannot be changed as it's used for login"
                     />
                   </div>
-
-
                 </div>
               </div>
             </div>
@@ -290,10 +288,10 @@ export default function UserInfoCard() {
             )}
             
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
+              <Button size="sm" variant="outline" onClick={closeModal} type="button">
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
+              <Button size="sm" type="submit">
                 Save Changes
               </Button>
             </div>

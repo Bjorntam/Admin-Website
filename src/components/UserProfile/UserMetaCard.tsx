@@ -3,14 +3,154 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { auth, db } from "../../firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { useState, useEffect } from "react";
 
 export default function UserMetaCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  const [userData, setUserData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    role: "",
+    teacherUID: ""
+  });
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: ""
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+
+  useEffect(() => {
+    // Listen for authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Get user data from Firestore
+          const userEmail = user.email;
+          console.log("Current user email:", userEmail);
+          
+          if (!userEmail) {
+            throw new Error("User email not found");
+          }
+          
+          const userDocRef = doc(db, "teachers", userEmail);
+          console.log("Fetching document from path:", `teachers/${userEmail}`);
+          
+          const userDocSnap = await getDoc(userDocRef);
+          
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
+            console.log("Document data:", data);
+            
+            setUserData({
+              firstName: data.FirstName || "",
+              lastName: data.LastName || "",
+              email: data.Email || userEmail,
+              role: data.Role || "",
+              teacherUID: data.TeacherUID || ""
+            });
+
+            // Also update form data for editing
+            setFormData({
+              firstName: data.FirstName || "",
+              lastName: data.LastName || "",
+              email: data.Email || userEmail
+            });
+          } else {
+            console.log("No such document exists!");
+            setError("User document not found");
+          }
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+          setError("Failed to load user data");
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+        setError("No user logged in");
+      }
+    });
+
+    // Clean up the subscription
+    return () => unsubscribe();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
+
+  const handleSave = async () => {
+    if (!auth.currentUser?.email) {
+      setError("No authenticated user found");
+      return;
+    }
+
+    try {
+      setError("");
+      const userEmail = auth.currentUser.email;
+      const userDocRef = doc(db, "teachers", userEmail);
+      
+      // Prepare update data - matching the structure in the database
+      const updateData = {
+        FirstName: formData.firstName,
+        LastName: formData.lastName
+      };
+      
+      console.log("Updating document with data:", updateData);
+      
+      // Update the document with new values
+      await updateDoc(userDocRef, updateData);
+
+      console.log("Document successfully updated");
+
+      // Update local state to reflect changes
+      setUserData(prev => ({
+        ...prev,
+        firstName: formData.firstName,
+        lastName: formData.lastName
+      }));
+
+      setUpdateSuccess(true);
+      
+      // Reset success message after 3 seconds
+      setTimeout(() => {
+        setUpdateSuccess(false);
+      }, 3000);
+      
+      closeModal();
+    } catch (err) {
+      console.error("Error updating user data:", err);
+      setError("Failed to update user information");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
+        <p className="text-center text-gray-500 dark:text-gray-400">Loading user information...</p>
+      </div>
+    );
+  }
+
+  if (error && !userData.email) {
+    return (
+      <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
+        <p className="text-center text-error-500 dark:text-red-400">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -18,7 +158,7 @@ export default function UserMetaCard() {
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-                Ingemar Bjorn Raymundo
+              {userData.firstName} {userData.lastName}
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -26,7 +166,7 @@ export default function UserMetaCard() {
                 </p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Admin
+                {userData.role}
                 </p>
               </div>
             </div>
@@ -53,6 +193,11 @@ export default function UserMetaCard() {
             Edit
           </button>
         </div>
+        {updateSuccess && (
+        <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg dark:bg-green-800/20 dark:text-green-400">
+          Profile updated successfully!
+        </div>
+      )}
       </div>
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
@@ -64,7 +209,7 @@ export default function UserMetaCard() {
               Update your details to keep your profile up-to-date.
             </p>
           </div>
-          <form className="flex flex-col">
+          <form className="flex flex-col" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
             <div className="custom-scrollbar h-[270px] overflow-y-auto px-2 pb-3">
               <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
@@ -74,26 +219,49 @@ export default function UserMetaCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
                     <Label>First Name</Label>
-                    <Input type="text" value="Ingemar Bjorn" />
+                    <Input 
+                      type="text" 
+                      name="firstName"
+                      value={formData.firstName} 
+                      onChange={handleInputChange}
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Last Name</Label>
-                    <Input type="text" value="Raymundo" />
+                    <Input 
+                      type="text" 
+                      name="lastName"
+                      value={formData.lastName} 
+                      onChange={handleInputChange}
+                    />
                   </div>
 
-                  <div className="col-span-2 ">
+                  <div className="col-span-2 lg:col-span-1">
                     <Label>Email Address</Label>
-                    <Input type="text" value="ingemarbjorn.r@gmail.com" />
+                    <Input 
+                      type="text" 
+                      name="email"
+                      value={formData.email} 
+                      disabled 
+                      hint="Email cannot be changed as it's used for login"
+                    />
                   </div>
                 </div>
               </div>
             </div>
+            
+            {error && (
+              <div className="px-2 mt-4 text-sm text-error-500 dark:text-red-400">
+                {error}
+              </div>
+            )}
+            
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
+              <Button size="sm" variant="outline" onClick={closeModal} type="button">
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
+              <Button size="sm" type="submit">
                 Save Changes
               </Button>
             </div>
