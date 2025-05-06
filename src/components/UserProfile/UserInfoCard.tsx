@@ -240,7 +240,7 @@ export default function UserInfoCard() {
             </p>
           </div>
           <form className="flex flex-col" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-            <div className="custom-scrollbar h-[270px] overflow-y-auto px-2 pb-3">
+            <div className="custom-scrollbar h-[320px] overflow-y-auto px-2 pb-3">
               <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Personal Information
