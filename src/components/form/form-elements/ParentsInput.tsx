@@ -95,6 +95,7 @@ export default function DefaultInputs() {
       // Add new parent
       await setDoc(parentRef, {
         Role: "Parent",
+        Email:email,
         ChildName: childName,
         GradeLevel: gradeLevel,
         ChildUID: "",

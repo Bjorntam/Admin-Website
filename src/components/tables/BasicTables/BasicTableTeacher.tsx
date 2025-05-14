@@ -32,10 +32,17 @@ interface Teacher {
   gradeLevel: string;
 }
 
+type SortOption = "alphabetical";
+
 export default function BasicTableTeacher() {
   const [tableData, setTableData] = useState<Teacher[]>([]);
+  const [filteredData, setFilteredData] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterGradeLevel, setFilterGradeLevel] = useState<string>("");
+  const [filterSubject, setFilterSubject] = useState<string>("");
+  const [sortOption, setSortOption] = useState<SortOption>("alphabetical");
 
   const { isOpen, openModal, closeModal } = useModal();
 
@@ -44,9 +51,23 @@ export default function BasicTableTeacher() {
   const [editSubject, setEditSubject] = useState("");
   const [editGradeLevel, setEditGradeLevel] = useState("");
 
-  const options = [
+  const gradeOptions = [
+    { value: "", label: "All Grades" },
     { value: "Nursery I", label: "Nursery I" },
     { value: "Nursery II", label: "Nursery II" },
+  ];
+
+  const subjectOptions = [
+    { value: "", label: "All Subjects" },
+    { value: "Math", label: "Math" },
+    { value: "English", label: "English" },
+    { value: "Filipino", label: "Filipino" },
+    { value: "Phonics", label: "Phonics" },
+    // Add more subjects as needed based on your data
+  ];
+
+  const sortOptions = [
+    { value: "alphabetical", label: "A-Z (Teacher's Name)" },
   ];
 
   useEffect(() => {
@@ -63,8 +84,9 @@ export default function BasicTableTeacher() {
             subject: doc.data().Subject || "",
             gradeLevel: doc.data().GradeLevel || "",
           }))
-          .filter(teacher => !excludedEmails.includes(teacher.email)); // 🔥 FILTER ADMIN OUT
+          .filter(teacher => !excludedEmails.includes(teacher.email));
         setTableData(teachersData);
+        setFilteredData(teachersData);
       } catch (error) {
         console.error("Error fetching teachers:", error);
       } finally {
@@ -74,7 +96,49 @@ export default function BasicTableTeacher() {
   
     fetchData();
   }, []);
-  
+
+  useEffect(() => {
+    let result = [...tableData];
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        item => 
+          item.email.toLowerCase().includes(query) || 
+          item.teacherName.toLowerCase().includes(query) ||
+          item.subject.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply grade level filter
+    if (filterGradeLevel) {
+      result = result.filter(item => item.gradeLevel === filterGradeLevel);
+    }
+    
+    // Apply subject filter
+    if (filterSubject) {
+      result = result.filter(item => item.subject === filterSubject);
+    }
+    
+    // Apply sorting
+    result = sortData(result, sortOption);
+    
+    setFilteredData(result);
+  }, [searchQuery, filterGradeLevel, filterSubject, sortOption, tableData]);
+
+  const sortData = (data: Teacher[], sortType: SortOption): Teacher[] => {
+    const sortedData = [...data];
+    
+    switch (sortType) {
+      case "alphabetical":
+        return sortedData.sort((a, b) => 
+          a.teacherName.localeCompare(b.teacherName)
+        );
+      default:
+        return sortedData;
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this teacher?")) {
@@ -138,6 +202,49 @@ export default function BasicTableTeacher() {
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="p-5 border-b border-gray-100 dark:border-white/[0.05]">
+        <div className="flex flex-col md:flex-row gap-4 justify-between">
+          {/* Search input */}
+          <div className="w-full md:w-1/3">
+            <Input
+              type="text"
+              placeholder="Search by email, teacher, or subject"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          {/* Filter and Sort */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-48">
+              <Select
+                options={gradeOptions}
+                placeholder="Filter by Grade"
+                onChange={(value) => setFilterGradeLevel(value)}
+                className="dark:bg-dark-900"
+              />
+            </div>
+            <div className="w-full sm:w-48">
+              <Select
+                options={subjectOptions}
+                placeholder="Filter by Subject"
+                onChange={(value) => setFilterSubject(value)}
+                className="dark:bg-dark-900"
+              />
+            </div>
+            <div className="w-full sm:w-48">
+              <Select
+                options={sortOptions}
+                placeholder="Sort by"
+                onChange={(value) => setSortOption(value as SortOption)}
+                className="dark:bg-dark-900"
+                defaultValue="alphabetical"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-full overflow-x-auto">
         <div className="min-w-[1102px]">
           <Table>
@@ -164,20 +271,20 @@ export default function BasicTableTeacher() {
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
               {loading ? (
                 <TableRow>
-                  <TableCell className="px-5 py-4 text-center">
+                  <TableCell className="px-5 py-4 text-center dark:text-white/90">
                     Loading data...
                   </TableCell>
                 </TableRow>
-              ) : tableData.length === 0 ? (
+              ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell className="px-5 py-4 text-center">
+                  <TableCell className="px-5 py-4 text-center dark:text-white/90">
                     No teachers found
                   </TableCell>
                 </TableRow>
               ) : (
-                tableData.map((teacher) => (
+                filteredData.map((teacher) => (
                   <TableRow key={teacher.id}>
-                                        <TableCell className="px-5 py-4 sm:px-6 text-start">
+                    <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <div className="flex items-center gap-3">
                         <div>
                           <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
@@ -194,7 +301,6 @@ export default function BasicTableTeacher() {
                         {teacher.subject}
                       </div>
                     </TableCell>
-
                     <TableCell className="px-4 py-3 text-start">
                       <Badge
                         size="sm"
@@ -238,7 +344,6 @@ export default function BasicTableTeacher() {
           </Table>
         </div>
 
-        {/* Modal */}
         <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
           <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
             <div className="px-2 pr-14">
@@ -283,7 +388,7 @@ export default function BasicTableTeacher() {
                     <div>
                       <Label>Grade Level</Label>
                       <Select
-                        options={options}
+                        options={gradeOptions}
                         placeholder="Select Grade Level"
                         onChange={handleSelectChange}
                         className="dark:bg-dark-900"
@@ -304,7 +409,6 @@ export default function BasicTableTeacher() {
             </form>
           </div>
         </Modal>
-
       </div>
     </div>
   );

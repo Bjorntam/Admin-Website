@@ -6,7 +6,7 @@ import AppLayout from "./layout/AppLayout";
 
 // Auth Pages
 import SignIn from "./pages/AuthPages/SignIn";
-import SignUp from "./pages/AuthPages/SignUp";
+
 
 // Other Pages
 import NotFound from "./pages/OtherPage/NotFound";
@@ -45,7 +45,6 @@ export default function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/signin" element={<SignIn />} />
-          <Route path="/Signup" element={<SignUp />} />
 
           {/* Default Redirect */}
           <Route path="/signin" element={<Navigate to="/signin" />} />

@@ -48,10 +48,8 @@ export default function SignInForm() {
 
         if (role === "Admin") {
           navigate("/Dashboard");
-        } else if (role === "Teacher") {
-          navigate("/teacher");
         } else {
-          setError("Unauthorized role. Only Admins and Teachers can log in.");
+          setError("Unauthorized User [01]");
         }
       } else {
         setError("Login failed. Unauthorized User.");
@@ -143,18 +141,6 @@ export default function SignInForm() {
                 </div>
               </div>
             </form>
-
-            <div className="mt-5">
-              <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-                Don&apos;t have an account?{" "}
-                <Link
-                  to="/signup"
-                  className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                >
-                  Sign Up
-                </Link>
-              </p>
-            </div>
           </div>
         </div>
       </div>

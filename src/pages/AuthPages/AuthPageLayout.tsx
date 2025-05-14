@@ -18,14 +18,14 @@ export default function AuthLayout({
             <div className="flex flex-col items-center max-w-xs">
               <div className="block mb-4">
                 <img
-                  width={231}
-                  height={48}
-                  src="/images/logo/textLogo.svg"
+                  width={320}
+                  height={110}
+                  src="/images/logo/adminLogo.svg"
                   alt="Logo"
                 />
               </div>
               <p className="text-center text-gray-100 dark:text-white">
-                Dashboard for Teacher and Admin at Metamorpets app
+                Dashboard for Admins at Metamorpets
               </p>
             </div>
           </div>

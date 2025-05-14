@@ -22,7 +22,7 @@ import {
   getDocs, 
   doc, 
   deleteDoc, 
-  updateDoc
+  updateDoc,
 } from "firebase/firestore";
 
 interface Order {
@@ -31,13 +31,24 @@ interface Order {
   ParentsName: string;
   ChildsName: string;
   Glevel: string;
+
+  isVerified: boolean;
 }
+
+// Type for sorting options
+type SortOption = "alphabetical" | "alphabeticalParent";
 
 export default function BasicTableOne() {
   // State for storing Firebase data
   const [tableData, setTableData] = useState<Order[]>([]);
+  const [filteredData, setFilteredData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterGradeLevel, setFilterGradeLevel] = useState<string>("");
+  const [sortOption, setSortOption] = useState<SortOption>("alphabetical");
 
   // Modal state
   const { isOpen, openModal, closeModal } = useModal();
@@ -48,10 +59,13 @@ export default function BasicTableOne() {
   const [editChildName, setEditChildName] = useState("");
   const [editGradeLevel, setEditGradeLevel] = useState("");
 
-  const options = [
+  const gradeOptions = [
+    { value: "", label: "All Grades" },
     { value: "Nursery I", label: "Nursery I" },
     { value: "Nursery II", label: "Nursery II" },
   ];
+
+  const sortOptions = [  { value: "alphabetical", label: "A-Z (Child's Name)" },  { value: "alphabeticalParent", label: "A-Z (Parent's Name)" },];
 
   // Fetch data from Firebase
   useEffect(() => {
@@ -60,15 +74,22 @@ export default function BasicTableOne() {
         const parentsCollection = collection(db, "parents");
         const parentsSnapshot = await getDocs(parentsCollection);
         
-        const parentsData = parentsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          email: doc.data().Email || "",
-          ParentsName: `${doc.data().FirstName || ""} ${doc.data().LastName || ""}`.trim(),
-          ChildsName: doc.data().ChildName || "",
-          Glevel: doc.data().GradeLevel || "",
-        }));
+        const parentsData = parentsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          const parentName = `${data.FirstName || ""} ${data.LastName || ""}`.trim();
+          
+          return {
+            id: doc.id,
+            email: data.Email || "",
+            ParentsName: parentName,
+            ChildsName: data.ChildName || "",
+            Glevel: data.GradeLevel || "",
+            isVerified: parentName !== "", // Consider verified if parent name exists
+          };
+        });
         
         setTableData(parentsData);
+        setFilteredData(parentsData);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -78,6 +99,51 @@ export default function BasicTableOne() {
 
     fetchData();
   }, []);
+
+  // Apply filters and search whenever dependencies change
+  useEffect(() => {
+    let result = [...tableData];
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        item => 
+          item.email.toLowerCase().includes(query) || 
+          item.ChildsName.toLowerCase().includes(query) ||
+          item.ParentsName.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply grade level filter
+    if (filterGradeLevel) {
+      result = result.filter(item => item.Glevel === filterGradeLevel);
+    }
+    
+    // Apply sorting
+    result = sortData(result, sortOption);
+    
+    setFilteredData(result);
+  }, [searchQuery, filterGradeLevel, sortOption, tableData]);
+
+  // Sort data based on selected option
+// Update sortData function
+const sortData = (data: Order[], sortType: SortOption): Order[] => {
+  const sortedData = [...data];
+  
+  switch (sortType) {
+    case "alphabetical":
+      return sortedData.sort((a, b) => 
+        a.ChildsName.localeCompare(b.ChildsName)
+      );
+    case "alphabeticalParent":
+      return sortedData.sort((a, b) => 
+        a.ParentsName.localeCompare(b.ParentsName)
+      );
+    default:
+      return sortedData;
+  }
+};
 
   // Handle delete
   const handleDelete = async (id: string) => {
@@ -126,17 +192,18 @@ export default function BasicTableOne() {
       });
 
       // Update UI after successful update
+      const updatedOrder = {
+        ...selectedOrder,
+        email: editEmail,
+        ParentsName: editParentName,
+        ChildsName: editChildName,
+        Glevel: editGradeLevel,
+        isVerified: editParentName !== ""
+      };
+      
       setTableData(prevData => 
         prevData.map(item => 
-          item.id === selectedOrder.id 
-            ? {
-                ...item, 
-                email: editEmail,
-                ParentsName: editParentName,
-                ChildsName: editChildName,
-                Glevel: editGradeLevel
-              } 
-            : item
+          item.id === selectedOrder.id ? updatedOrder : item
         )
       );
       
@@ -151,8 +218,53 @@ export default function BasicTableOne() {
     setEditGradeLevel(value);
   };
 
+  // Sort data by verification status (verified first)
+  const sortedByVerification = [...filteredData].sort((a, b) => {
+    if (a.isVerified === b.isVerified) return 0;
+    return a.isVerified ? -1 : 1;
+  });
+
+  // Group data by verification status
+  const verifiedData = filteredData.filter(item => item.isVerified);
+  const unverifiedData = filteredData.filter(item => !item.isVerified);
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="p-5 border-b border-gray-100 dark:border-white/[0.05]">
+        <div className="flex flex-col md:flex-row gap-4 justify-between">
+          {/* Search input */}
+          <div className="w-full md:w-1/3">
+            <Input
+              type="text"
+              placeholder="Search by email, child, or parent name"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          {/* Filter and Sort */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-48">
+              <Select
+                options={gradeOptions}
+                placeholder="Filter by Grade"
+                onChange={(value) => setFilterGradeLevel(value)}
+                className="dark:bg-dark-900"
+              />
+            </div>
+            <div className="w-full sm:w-48">
+              <Select
+                options={sortOptions}
+                placeholder="Sort by"
+                onChange={(value) => setSortOption(value as SortOption)}
+                className="dark:bg-dark-900"
+                defaultValue="alphabetical"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-full overflow-x-auto">
         <div className="min-w-[1102px]">
           <Table>
@@ -187,6 +299,12 @@ export default function BasicTableOne() {
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
+                  Status
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Edit/Delete
                 </TableCell>
               </TableRow>
@@ -194,76 +312,166 @@ export default function BasicTableOne() {
 
             {/* Table Body */}
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {loading ? (
-              <TableRow>
-                <TableCell className="px-5 py-4 text-center">
-                    <div className="col-span-5 px-5 py-4 text-center">Loading data...</div>
+              {loading ? (
+                <TableRow>
+                  <TableCell className="col-span-6 px-5 py-4 text-center">
+                    <div className="px-5 py-4 text-center dark:text-white/90">Loading data...</div>
                   </TableCell>
                 </TableRow>
-                ) : tableData.length === 0 ? (
-                  <TableRow>
-                    <TableCell className="px-5 py-4 text-center">
-                      <div className="col-span-5 px-5 py-4 text-center">No records found</div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                tableData.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="px-5 py-4 sm:px-6 text-start">
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                            {order.email}
-                          </span>
+              ) : sortedByVerification.length === 0 ? (
+                <TableRow>
+                  <TableCell className="col-span-6 px-5 py-4 text-center">
+                    <div className="px-5 py-4 text-center dark:text-white/90">No records found</div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <>
+                  {/* Verified Accounts Section Header (when there are unverified accounts) */}
+                  {unverifiedData.length > 0 && verifiedData.length > 0 && (
+                    <TableRow className="bg-gray-50 dark:bg-gray-800/30">
+                      <TableCell className="col-span-6 px-5 py-2 text-sm font-medium text-gray-700 dark:text-white/90">
+                        Verified Accounts ({verifiedData.length})
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Verified Accounts */}
+                  {verifiedData.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start">
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                              {order.email}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
-                      {order.ParentsName}
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
-                      <div className="flex -space-x-2">
-                        {order.ChildsName}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
-                      <Badge
-                        size="sm"
-                        color={
-                          order.Glevel === "Nursery I"
-                            ? "success"
-                            : order.Glevel === "Nursery II"
-                            ? "warning"
-                            : "error"
-                        }
-                      >
-                        {order.Glevel}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                      <div className="flex space-x-2">
-                        <Button
-                          size="md"
-                          variant="delete"
-                          onClick={() => handleDelete(order.id)}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
+                        {order.ParentsName}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
+                        <div className="flex -space-x-2">
+                          {order.ChildsName}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
+                        <Badge
+                          size="sm"
+                          color={
+                            order.Glevel === "Nursery I"
+                              ? "success"
+                              : order.Glevel === "Nursery II"
+                              ? "warning"
+                              : "error"
+                          }
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                          </svg>
-                        </Button>
-                        <Button
-                          size="md"
-                          variant="edit"
-                          onClick={() => handleEditClick(order)}
+                          {order.Glevel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
+                        <Badge size="sm" color="success">
+                          Verified
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                        <div className="flex space-x-2">
+                          <Button
+                            size="md"
+                            variant="delete"
+                            onClick={() => handleDelete(order.id)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                          </Button>
+                          <Button
+                            size="md"
+                            variant="edit"
+                            onClick={() => handleEditClick(order)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                            </svg>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  
+                  {/* Unverified Accounts Section Header */}
+                  {unverifiedData.length > 0 && (
+                    <TableRow className="bg-gray-50 dark:bg-gray-800/30">
+                      <TableCell className="col-span-6 px-5 py-2 text-sm font-medium text-gray-700 dark:text-white/90">
+                        Unverified Accounts ({unverifiedData.length})
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Unverified Accounts */}
+                  {unverifiedData.map((order) => (
+                    <TableRow key={order.id} className="bg-gray-50/30 dark:bg-gray-800/10">
+                      <TableCell className="px-5 py-4 sm:px-6 text-start">
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                              {order.email}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-500 italic text-start text-theme-sm dark:text-gray-400">
+                        Not provided
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
+                        <div className="flex -space-x-2">
+                          {order.ChildsName}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
+                        <Badge
+                          size="sm"
+                          color={
+                            order.Glevel === "Nursery I"
+                              ? "success"
+                              : order.Glevel === "Nursery II"
+                              ? "warning"
+                              : "error"
+                          }
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                          </svg>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          {order.Glevel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
+                        <Badge size="sm" color="error">
+                          Unverified
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                        <div className="flex space-x-2">
+                          <Button
+                            size="md"
+                            variant="delete"
+                            onClick={() => handleDelete(order.id)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                          </Button>
+                          <Button
+                            size="md"
+                            variant="edit"
+                            onClick={() => handleEditClick(order)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                            </svg>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
               )}
             </TableBody>
           </Table>
@@ -313,7 +521,10 @@ export default function BasicTableOne() {
                     <div>
                       <Label>Grade Level</Label>
                       <Select
-                        options={options}
+                        options={[
+                          { value: "Nursery I", label: "Nursery I" },
+                          { value: "Nursery II", label: "Nursery II" },
+                        ]}
                         placeholder="Select Grade level"
                         onChange={handleSelectChange}
                         className="dark:bg-dark-900"

@@ -8,7 +8,7 @@ export default function Home() {
     <>
       <PageMeta
         title="Admin Dashboard"
-        description="This is React.js Ecommerce Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
+        description="Admin Dashboard"
       />
       <PageBreadcrumb pageTitle="Users Accounts" />
       <div className="grid grid-cols-12 gap-4 md:gap-6">
