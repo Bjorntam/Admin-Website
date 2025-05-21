@@ -28,20 +28,20 @@ export default {
         current: "currentColor",
         transparent: "transparent",
         white: "#FFFFFF",
-        black: "#00C448",
+        black: "#000000",
         brand: {
-          25: "#E8F9E4",
-          50: "#C1F2C3",
-          100: "#9AE5A2",
-          200: "#71D785",
-          300: "#4ACB64",
-          400: "#27B34C",
-          500: "#00C448", // ← Your main color
-          600: "#00A73F",
-          700: "#008E36",
-          800: "#00772E",
-          900: "#006222",
-          950: "#004D16",
+          25: "#F4F3FF",   // Very light lavender
+          50: "#E5E3FF",
+          100: "#CCC9FF",
+          200: "#B0ADFF",
+          300: "#948EFF",
+          400: "#7E76FF",
+          500: "#6C63FF",  // ← Main brand color
+          600: "#5C54E0",
+          700: "#4D45C2",
+          800: "#3E37A3",
+          900: "#2E2985",
+          950: "#3b2573",  // Deepest shade
         },
         "blue-light": {
           25: "#F5FBFF",
@@ -133,6 +133,32 @@ export default {
         },
         "theme-purple": {
           500: "#7A5AF8",
+        },
+        kinderI: {
+          50: "#E6F9FA",
+          100: "#CCF2F5",
+          200: "#99E5EB",
+          300: "#66D8E1",
+          400: "#33CBD7",
+          500: "#00CED1",  // Main Kinder I color (teal-like)
+          600: "#00A5A8",
+          700: "#007C7E",
+          800: "#005254",
+          900: "#00292A",
+          950: "#001415",
+        },
+        nurseryII: {
+          50: "#FFFBE6",
+          100: "#FFF7CC",
+          200: "#FFEF99",
+          300: "#FFE666",
+          400: "#FFDE33",
+          500: "#FFD700",  // Main Nursery II color (gold-like)
+          600: "#CCAD00",
+          700: "#998200",
+          800: "#665700",
+          900: "#332C00",
+          950: "#191600",
         },
       },
       boxShadow: {

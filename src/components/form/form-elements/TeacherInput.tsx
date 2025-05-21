@@ -11,7 +11,7 @@ import Alert from "./../../ui/alert/Alert";
 
 export default function DefaultInputs() {
   const gradeOptions = [
-    { value: "Nursery I", label: "Nursery I" },
+    { value: "Kinder I", label: "Kinder I" },
     { value: "Nursery II", label: "Nursery II" },
   ];
   const subjectOptions = [
