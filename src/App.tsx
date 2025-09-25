@@ -7,7 +7,6 @@ import AppLayout from "./layout/AppLayout";
 // Auth Pages
 import SignIn from "./pages/AuthPages/SignIn";
 
-
 // Other Pages
 import NotFound from "./pages/OtherPage/NotFound";
 
@@ -46,8 +45,8 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/signin" element={<SignIn />} />
 
-          {/* Default Redirect */}
-          <Route path="/signin" element={<Navigate to="/signin" />} />
+          {/* Redirect root to signin */}
+          <Route path="/" element={<Navigate to="/signin" replace />} />
 
           {/* Protected Layout and Routes */}
           <Route
@@ -58,8 +57,8 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="Dashboard" element={<Home />} />
-            <Route path="TeacherAccounts" element={<TeacherAccounts />} />
+            <Route path="dashboard" element={<Home />} />
+            <Route path="teacheraccounts" element={<TeacherAccounts />} />
             <Route path="profile" element={<UserProfiles />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="blank" element={<Blank />} />
