@@ -389,6 +389,8 @@ export default function BasicTableOne() {
   const verifiedData = filteredData.filter(item => item.isVerified);
   const unverifiedData = filteredData.filter(item => !item.isVerified);
 
+  
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="p-5 border-b border-gray-100 dark:border-white/[0.05]">

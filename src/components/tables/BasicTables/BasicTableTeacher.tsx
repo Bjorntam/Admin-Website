@@ -35,7 +35,7 @@ interface Teacher {
   isMasked?: boolean; // Added for masking state
 }
 
-type SortOption = "alphabetical";
+type SortOption = "alphabetical"| "reverseAlphabetical";
 
 export default function BasicTableTeacher() {
   const [tableData, setTableData] = useState<Teacher[]>([]);
@@ -83,6 +83,7 @@ export default function BasicTableTeacher() {
 
   const sortOptions = [
     { value: "alphabetical", label: "A-Z (Teacher's Name)" },
+    { value: "reverseAlphabetical", label: "Z-A (Teacher's Name)" },
   ];
 
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function BasicTableTeacher() {
       try {
         const teachersCollection = collection(db, "teachers");
         const teachersSnapshot = await getDocs(teachersCollection);
-        const excludedEmails = ["admin@gmail.com", "admin2@gmail.com"];
+        const excludedEmails = ["admin@gmail.com", "metamorpet@proton.me"];
         const teachersData = teachersSnapshot.docs
           .map(doc => {
             const data = doc.data();
@@ -149,11 +150,15 @@ export default function BasicTableTeacher() {
 
   const sortData = (data: Teacher[], sortType: SortOption): Teacher[] => {
     const sortedData = [...data];
-    
+  
     switch (sortType) {
       case "alphabetical":
         return sortedData.sort((a, b) => 
           a.teacherName.localeCompare(b.teacherName)
+        );
+      case "reverseAlphabetical":
+        return sortedData.sort((a, b) =>
+          b.teacherName.localeCompare(a.teacherName)
         );
       default:
         return sortedData;

@@ -1,9 +1,8 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth, db } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { Link } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
@@ -16,12 +15,34 @@ export default function SignInForm() {
   const [error, setError] = useState("");
   const [emailError, setEmailError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showResetPopup, setShowResetPopup] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetEmailError, setResetEmailError] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
   const navigate = useNavigate();
 
-  const validateEmail = (value: string) => {
+  // Timer for resend button
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => (prev <= 1 ? 0 : prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  // Add reset email validation
+  const validateEmail = (value: string, context: "login" | "reset" = "login") => {
     const isValidEmail =
       /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value);
-    setEmailError(!isValidEmail);
+    if (context === "login") {
+      setEmailError(!isValidEmail);
+    } else {
+      setResetEmailError(!isValidEmail);
+    }
     return isValidEmail;
   };
 
@@ -29,6 +50,12 @@ export default function SignInForm() {
     const value = e.target.value;
     setEmail(value);
     validateEmail(value);
+  };
+
+  const handleResetEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setResetEmail(value);
+    validateEmail(value, "reset");
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -59,6 +86,39 @@ export default function SignInForm() {
       setError("Login failed. Check your email or password.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setResetMessage("");
+    setResetLoading(true);
+
+    if (!validateEmail(resetEmail, "reset")) {
+      setResetMessage("Please enter a valid email address.");
+      setResetLoading(false);
+      return;
+    }
+
+    try {
+      const docRef = doc(db, "teachers", resetEmail);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        setResetMessage("This email is not registered. Please use a registered email.");
+        setResetLoading(false);
+        return;
+      }
+
+      await sendPasswordResetEmail(auth, resetEmail);
+      setResetMessage("Check your email for the password reset link.");
+      setTimer(30);
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error(err);
+        setResetMessage("Failed to send password reset email. Please try again.");
+      }
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -117,12 +177,13 @@ export default function SignInForm() {
                   </div>
                 </div>
                 <div className="flex items-end justify-end">
-                  <Link
-                    to="/reset-password"
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPopup(true)}
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                   >
                     Forgot password?
-                  </Link>
+                  </button>
                 </div>
                 {error && (
                   <div className="text-sm text-error-500 dark:text-red-400">
@@ -144,6 +205,54 @@ export default function SignInForm() {
           </div>
         </div>
       </div>
+      {showResetPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-lg w-full">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+              Reset Password
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <Label>
+                  Email <span className="text-error-500">*</span>
+                </Label>
+                <Input
+                  type="email"
+                  value={resetEmail}
+                  error={resetEmailError}
+                  onChange={handleResetEmailChange}
+                  placeholder="Enter your email"
+                  hint={resetEmailError ? "This is an invalid email address." : ""}
+                />
+              </div>
+              {resetMessage && (
+                <div className={`text-sm ${resetMessage.includes("Check") ? "text-green-500 dark:text-green-400" : "text-error-500 dark:text-red-400"}`}>
+                  {resetMessage}
+                </div>
+              )}
+              <div className="flex justify-between">
+                <button
+                  onClick={() => setShowResetPopup(false)}
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePasswordReset}
+                  disabled={timer > 0 || resetLoading}
+                  className={`px-4 py-2 text-white rounded-lg ${
+                    timer > 0 || resetLoading
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-brand-500 hover:bg-brand-600"
+                  }`}
+                >
+                  {resetLoading ? "Sending..." : timer > 0 ? `Resend in ${timer}s` : "Send Reset Link"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

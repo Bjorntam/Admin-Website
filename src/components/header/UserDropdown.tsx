@@ -172,7 +172,7 @@ const [userData, setUserData] = useState({
               Account settings
             </DropdownItem>
           </li> */}
-          <li>
+          {/* <li>
             <DropdownItem
               onItemClick={closeDropdown}
               tag="a"
@@ -196,7 +196,7 @@ const [userData, setUserData] = useState({
               </svg>
               Support
             </DropdownItem>
-          </li>
+          </li> */}
         </ul>
         <Link
           to="/signin"
