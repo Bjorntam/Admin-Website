@@ -25,7 +25,7 @@ export default function AuthLayout({
                 />
               </div>
               <p className="text-center text-gray-100 dark:text-white">
-                Dashboard for Admins at Metamorpets
+                Dashboard for Admins at MetamorPET
               </p>
             </div>
           </div>
