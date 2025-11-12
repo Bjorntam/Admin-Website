@@ -30,18 +30,18 @@ export default {
         white: "#FFFFFF",
         black: "#000000",
         brand: {
-          25: "#F4F3FF",   // Very light lavender
-          50: "#E5E3FF",
-          100: "#CCC9FF",
-          200: "#B0ADFF",
-          300: "#948EFF",
-          400: "#7E76FF",
-          500: "#6C63FF",  // ← Main brand color
-          600: "#5C54E0",
-          700: "#4D45C2",
-          800: "#3E37A3",
-          900: "#2E2985",
-          950: "#3b2573",  // Deepest shade
+          25: "#F4FFF0",   // Very light green
+          50: "#E8FFD9",
+          100: "#D1FFB3",
+          200: "#ADFF80",
+          300: "#7FFF4D",
+          400: "#4EED26",
+          500: "#16D700",  // ← Main brand color
+          600: "#12B000",
+          700: "#0E8A00",
+          800: "#0A6400",
+          900: "#064D00",
+          950: "#033700",  // Deepest shade
         },
         "blue-light": {
           25: "#F5FBFF",
