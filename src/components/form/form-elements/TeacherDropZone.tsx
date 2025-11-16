@@ -13,6 +13,7 @@ import {
 } from "../../ui/table";
 import Button from "../../ui/button/Button";
 import Alert from "../../ui/alert/Alert";
+import Select from "../Select";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../../firebase"; // adjust path as needed
 
@@ -22,7 +23,7 @@ interface CsvRow {
   gradeLevel: string;
   subject: string;
   isEditing: boolean;
-[key: string]: string | boolean;
+  [key: string]: string | boolean;
 }
 
 interface AlertInfo {
@@ -31,12 +32,25 @@ interface AlertInfo {
   show: boolean;
 }
 
+const GRADE_LEVEL_OPTIONS = [
+  { value: "Kinder I", label: "Kinder I" },
+  { value: "Nursery II", label: "Nursery II" },
+];
+
+const SUBJECT_OPTIONS = [
+  { value: "English", label: "English" },
+  { value: "Filipino", label: "Filipino" },
+  { value: "Math", label: "Math" },
+  { value: "Phonics", label: "Phonics" },
+];
+
 const DropzoneComponent: React.FC = () => {
   const [, setSelectedFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<CsvRow[]>([]);
   const { isOpen, openModal, closeModal } = useModal();
   const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
   const [alertInfo, setAlertInfo] = useState<AlertInfo | null>(null);
+  const [uploadWarning, setUploadWarning] = useState<AlertInfo | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [registrationResults, setRegistrationResults] = useState<{
     success: number;
@@ -44,10 +58,47 @@ const DropzoneComponent: React.FC = () => {
     total: number;
   }>({ success: 0, failures: 0, total: 0 });
 
-  const onDrop = (acceptedFiles: File[]) => {
+  const downloadCSVTemplate = () => {
+    // Define the CSV template headers and sample data for teachers
+    const csvContent = "email,teacherName,gradeLevel,subject\nteacher@example.com,John Doe,Kinder I,Filipino\nteacher2@example.com,Jane Smith,Nursery II,English";
+    
+    // Create a blob from the CSV content
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Create a temporary link element
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'teacher_registration_template.csv');
+    link.style.visibility = 'hidden';
+    
+    // Append to body, click, and remove
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up the URL object
+    URL.revokeObjectURL(url);
+  };
+
+  const onDrop = (acceptedFiles: File[], rejectedFiles: any[]) => {
+    // Check if there were rejected files
+    if (rejectedFiles.length > 0) {
+      setUploadWarning({
+        type: "warning",
+        message: "Only CSV files are accepted. Please upload a valid .csv file.",
+        show: true
+      });
+      return;
+    }
+
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
       setSelectedFile(file);
+      
+      // Clear any previous warning
+      setUploadWarning(null);
 
       Papa.parse<CsvRow>(file, {
         header: true,
@@ -241,6 +292,17 @@ const DropzoneComponent: React.FC = () => {
     }
   }, [alertInfo]);
 
+  // Hide upload warning after 5 seconds
+  React.useEffect(() => {
+    if (uploadWarning?.show) {
+      const timer = setTimeout(() => {
+        setUploadWarning(prev => prev ? { ...prev, show: false } : null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [uploadWarning]);
+
   return (
     <ComponentCard title="Bulk Registration">
       <div className="transition border border-gray-300 border-dashed cursor-pointer dark:hover:border-brand-500 dark:border-gray-700 rounded-xl hover:border-brand-500">
@@ -285,9 +347,34 @@ const DropzoneComponent: React.FC = () => {
             <span className="font-medium underline text-theme-sm text-brand-500">
               Browse File
             </span>
+
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadCSVTemplate();
+                }}
+                className="text-xs text-gray-600 dark:text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 underline transition-colors"
+              >
+                Download CSV Template
+              </button>
+            </div>
           </div>
         </form>
       </div>
+
+      {/* Upload Warning Alert */}
+      {uploadWarning?.show && (
+        <div className="mt-4 transition-all duration-300 ease-in-out">
+          <Alert
+            variant={uploadWarning.type}
+            title="Warning"
+            message={uploadWarning.message}
+            showLink={false}
+          />
+        </div>
+      )}
 
       <Modal isOpen={isOpen} onClose={closeModal} className="w-full max-w-[75vw] m-4">
         <div className="relative w-full max-h-[80vh] overflow-hidden rounded-3xl bg-white dark:bg-gray-900 flex flex-col">
@@ -393,24 +480,28 @@ const DropzoneComponent: React.FC = () => {
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
                         {row.isEditing ? (
-                          <input
-                            type="text"
-                            value={row.gradeLevel}
-                            onChange={(e) => updateRow(index, "gradeLevel", e.target.value)}
-                            className="w-full p-1 border rounded outline-none border-gray-300 dark:border-gray-700 bg-transparent"
-                          />
+                          <div className="w-full">
+                            <Select
+                              options={GRADE_LEVEL_OPTIONS}
+                              placeholder={row.gradeLevel || "Select Grade level"}
+                              onChange={(value) => updateRow(index, "gradeLevel", value)}
+                              className="dark:bg-gray-900"
+                            />
+                          </div>
                         ) : (
                           <span  className="w-full p-1  outline-none border-gray-300 dark:border-gray-700 bg-transparent">{row.gradeLevel}</span>
                         )}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-800 text-start text-theme-sm dark:text-white/90">
                         {row.isEditing ? (
-                          <input
-                            type="text"
-                            value={row.subject}
-                            onChange={(e) => updateRow(index, "subject", e.target.value)}
-                            className="w-full p-1 border rounded outline-none border-gray-300 dark:border-gray-700 bg-transparent"
-                          />
+                          <div className="w-full">
+                            <Select
+                              options={SUBJECT_OPTIONS}
+                              placeholder={row.subject || "Select Subject"}
+                              onChange={(value) => updateRow(index, "subject", value)}
+                              className="dark:bg-gray-900"
+                            />
+                          </div>
                         ) : (
                           <span  className="w-full p-1  outline-none border-gray-300 dark:border-gray-700 bg-transparent">{row.subject}</span>
                         )}

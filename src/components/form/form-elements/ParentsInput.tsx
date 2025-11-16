@@ -147,7 +147,7 @@ export default function DefaultInputs() {
   };
 
   return (
-    <ComponentCard title="Parent Information | Individual">
+    <ComponentCard title="Parent's Information | Individual">
       <div className="space-y-6">
         {/* Show error/warning alerts at the top */}
         {status && statusType && (statusType === "error" || statusType === "warning") && (
@@ -193,7 +193,7 @@ export default function DefaultInputs() {
             startIcon={<PlusIcon />}
             onClick={handleSubmit}
           >
-            Register Account
+             Pre-Register Account
           </Button>
         </div>
         

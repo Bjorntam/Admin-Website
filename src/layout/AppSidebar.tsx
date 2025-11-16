@@ -36,8 +36,8 @@ const navItems: NavItem[] = [
   {
     name: "User Registration",
     icon: <ListIcon />,
-    subItems: [{ name: "Parent's Registration", path: "/form-elements", pro: false },
-                {name: "Teacher's Registration", path: "/teacher-registration", pro: false }],
+    subItems: [{ name: "Parent's Pre-Registration", path: "/form-elements", pro: false },
+                {name: "Teacher's Pre-Registration", path: "/teacher-registration", pro: false }],
   },
   // {
   //   icon: <CalenderIcon />,

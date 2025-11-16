@@ -489,7 +489,7 @@ export default function BasicTableOne() {
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  className="px-8 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400"
                 >
                   Actions
                 </TableCell>
@@ -725,7 +725,7 @@ export default function BasicTableOne() {
                 Edit Personal Information
               </h4>
               <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-                Update parents account details to keep their profile up-to-date.
+                Update parent account details to keep their profile up-to-date.
               </p>
             </div>
             <form className="flex flex-col" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
@@ -741,6 +741,8 @@ export default function BasicTableOne() {
                         type="text" 
                         value={editEmail} 
                         onChange={(e) => setEditEmail(e.target.value)} 
+                        disabled
+                         hint="Email cannot be changed as it's used for login"
                       />
                     </div>
                     <div className="col-span-2 lg:col-span-1">

@@ -10,7 +10,7 @@ export default function Home() {
         title="Admin Dashboard"
         description="Admin Dashboard"
       />
-      <PageBreadcrumb pageTitle="Users Accounts" />
+      <PageBreadcrumb pageTitle="Users Account" />
       <div className="grid grid-cols-12 gap-4 md:gap-6">
         <div className="col-span-12 space-y-01 xl:col-span-13">
         <ComponentCard title="Parents Accounts">

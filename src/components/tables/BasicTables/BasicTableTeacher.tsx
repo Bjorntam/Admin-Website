@@ -371,6 +371,10 @@ export default function BasicTableTeacher() {
     setEditGradeLevel(value);
   };
 
+    const handleSubjectChange = (value: string) => {
+    setEditSubject(value);
+  };
+
   // Sort data by verification status (verified first)
   const sortedByVerification = [...filteredData].sort((a, b) => {
     if (a.isVerified === b.isVerified) return 0;
@@ -472,7 +476,7 @@ export default function BasicTableTeacher() {
                 <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                   Status
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400">
                   Actions
                 </TableCell>
                 <TableCell isHeader className="px-4 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
@@ -705,7 +709,7 @@ export default function BasicTableTeacher() {
           <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
             <div className="px-2 pr-14">
               <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-                Edit Teacher Information
+                Edit Teacher's Information
               </h4>
               <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
                 Update teacher account details to keep their profile up-to-date.
@@ -724,6 +728,9 @@ export default function BasicTableTeacher() {
                         type="text" 
                         value={editEmail} 
                         onChange={(e) => setEditEmail(e.target.value)} 
+                        disabled
+                        hint="Email cannot be changed as it's used for login"
+
                       />
                     </div>
                     <div className="col-span-2 lg:col-span-1">
@@ -736,10 +743,12 @@ export default function BasicTableTeacher() {
                     </div>
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Subject</Label>
-                      <Input 
-                        type="text" 
-                        value={editSubject} 
-                        onChange={(e) => setEditSubject(e.target.value)} 
+                      <Select 
+                        options={subjectOptions} 
+                        onChange={handleSubjectChange} 
+                        placeholder="Select Grade Level"
+                        className="dark:bg-dark-900"
+                        defaultValue={editSubject}
                       />
                     </div>
                     <div>
