@@ -512,7 +512,7 @@ export default function BasicTableTeacher() {
                   {unverifiedData.length > 0 && verifiedData.length > 0 && (
                     <TableRow className="bg-gray-50 dark:bg-gray-800/30">
                       <TableCell className="col-span-7 px-5 py-2 text-sm font-medium text-gray-700 dark:text-white/90">
-                        Verified Accounts ({verifiedData.length})
+                        Registered Accounts ({verifiedData.length})
                       </TableCell>
                     </TableRow>
                   )}
@@ -608,7 +608,7 @@ export default function BasicTableTeacher() {
                   {unverifiedData.length > 0 && (
                     <TableRow className="bg-gray-50 dark:bg-gray-800/30">
                       <TableCell className="col-span-7 px-5 py-2 text-sm font-medium text-gray-700 dark:text-white/90">
-                        Unverified Accounts ({unverifiedData.length})
+                        Pre-Registered Accounts ({unverifiedData.length})
                       </TableCell>
                     </TableRow>
                   )}
